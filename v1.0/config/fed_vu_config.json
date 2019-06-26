@@ -1,0 +1,52 @@
+{
+    "log_path":"/log/tracking",
+    "ssid":"fed_vu",
+    "thread_enable":{
+        "service": true,
+        "gui":true
+    },
+    "daemon":{
+        "ip":"10.42.0.31",
+        "port":2000,
+        "timeout": 5.0,
+        "poll_rate": 0.5
+    },
+    "gpredict":{
+        "ip":"0.0.0.0",
+        "port":2000,
+        "timeout":0.5,
+        "poll_rate": 0.5
+    },
+    "messages":{
+        "tc":{
+            "uid":"username",
+            "ssid":"fed_vu",
+            "type":"tc",
+            "session_id":null,
+            "tx_ts":"",
+            "rx_ts":"",
+            "cmd":[
+                "start",
+                "stop",
+                "query",
+                "set"
+            ],
+            "params":{
+              "az":0.0,
+              "el":0.0
+            }
+        },
+        "tm":{
+            "uid":"username",
+            "ssid":"fed_vu",
+            "type":["tm","mgmt"],
+            "session_id":null,
+            "tx_ts":"",
+            "rx_ts":"",
+            "az":0.0,
+            "el":0.0,
+            "az_rate":0.0,
+            "el_rate":0.0
+        }
+    }
+}
