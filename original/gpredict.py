@@ -15,12 +15,10 @@ class Gpredict_Thread(threading.Thread):
         self._stop      = threading.Event()
         self.ip         = ip
         self.port       = port
-        self.sock       = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #To allow socket reuse
+
         self.timeout    = timeout
-        self.sock.settimeout(self.timeout)
         self.parent     = parent
-        
+
 
         self.connected  = 0 #0 = disconnected, 1 = listening, 2 = connected
 
@@ -31,6 +29,9 @@ class Gpredict_Thread(threading.Thread):
 
     def run(self):
         print self.utc_ts() + "Gpredict Thread Started..."
+        self.sock       = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #To allow socket reuse
+        self.sock.settimeout(self.timeout)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
         self.connected = 1 #listening
@@ -59,7 +60,7 @@ class Gpredict_Thread(threading.Thread):
             except socket.error as msg:
                 #print self.utc_ts() + str(msg)
                 time.sleep(1)
-    
+
     def getConnectionStatus(self):
         return self.connected
 
