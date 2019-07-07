@@ -2,8 +2,6 @@
 
 Uses the 'VTGS Tracking Protocol' (VTP) which is a simple comma delimited ASCII format for comms between the client and the daemon.  
 
-See https://github.com/vt-gs/tracking_client/tree/master/original for client.
-
 ## Version Changelog:
 
 ### v0.1.0
