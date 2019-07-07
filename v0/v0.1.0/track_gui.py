@@ -21,13 +21,13 @@ class main_widget(QtGui.QWidget):
     def __init__(self):
         super(main_widget, self).__init__()
         self.initUI()
-       
+
     def initUI(self):
         self.grid = QtGui.QGridLayout()
         #self.setLayout(self.grid)
 
 class MainWindow(QtGui.QMainWindow):
-    def __init__(self, options):
+    def __init__(self, cfg):
         #QtGui.QMainWindow.__init__(self)
         super(MainWindow, self).__init__()
         self.resize(850, 425)
@@ -40,10 +40,11 @@ class MainWindow(QtGui.QMainWindow):
         self.main_window = main_widget()
         self.setCentralWidget(self.main_window)
 
-        self.ip   = options.ip
-        self.port = options.port
-        self.ssid = options.ssid
-        self.uid  = options.uid
+        self.cfg    = cfg
+        self.ssid   = self.cfg['startup_ssid']
+        self.ip     = self.cfg['daemon_ip']
+        self.port   = self.cfg['ssid'][self.cfg['ssid_map'][self.ssid]]['port']
+        self.uid    = self.cfg['uid']
 
         #self.statusBar().showMessage("| Disconnected | Manual | Current Az: 000.0 | Current El: 000.0 |")
         self.init_variables()
@@ -61,35 +62,29 @@ class MainWindow(QtGui.QMainWindow):
         self.cur_el = 0
         self.cur_el_rate = 0
         self.tar_el = 0
-        
-        if self.ssid == 'VUL':
-            self.home_az = 180.0
-            self.home_el = 0.0
-            self.tar_az = 180.0
-            self.tar_el = 0.0
-        if self.ssid == '3M0':
-            self.home_az = 180.0
-            self.home_el = 90.0
-            self.tar_az = 180.0
-            self.tar_el = 90.0
+
+        self.home_az = self.cfg['ssid'][self.cfg['ssid_map'][self.ssid]]['home_az']
+        self.home_el = self.cfg['ssid'][self.cfg['ssid_map'][self.ssid]]['home_el']
+        self.tar_az = self.home_az
+        self.tar_el = self.home_el
 
         self.callback    = None   #Callback accessor for tracking control
-        self.update_rate = 250    #Feedback Query Auto Update Interval in milliseconds
+        self.update_rate = self.cfg['update_rate'] * 1000    #Feedback Query Auto Update Interval in milliseconds
 
         self.pred_az = 0.0
         self.pred_el = 0.0
-        self.pred_ip = '127.000.000.001'
-        self.pred_port = int(4533)
+        self.pred_ip = self.cfg['gpredict']['ip']
+        self.pred_port = self.cfg['gpredict']['port']
         self.gpredict  = None     #Callback accessor for gpredict thread control
         self.pred_conn_state = 0   #Gpredict Connection Status, 0=Disconnected, 1=Listening, 2=Connected
         self.autoTrack = False    #auto track mode, True = Auto, False = Manual
 
     def init_ui(self):
         self.init_frames()
-        self.init_ctrl_frame()  
-        self.init_connect_frame() 
+        self.init_ctrl_frame()
+        self.init_connect_frame()
         self.init_predict_frame()
-        
+
         #initialize target displays
         self.update_target_azimuth()
         self.update_target_elevation()
@@ -117,10 +112,10 @@ class MainWindow(QtGui.QMainWindow):
         self.session_button.clicked.connect(self.session_button_event)
 
         #Antenna Control Signals
-        self.query_button.clicked.connect(self.query_button_event) 
-        self.stop_button.clicked.connect(self.stop_button_event) 
+        self.query_button.clicked.connect(self.query_button_event)
+        self.stop_button.clicked.connect(self.stop_button_event)
         self.home_button.clicked.connect(self.home_button_event)
-        self.update_button.clicked.connect(self.update_button_event)  
+        self.update_button.clicked.connect(self.update_button_event)
         self.auto_query_cb.stateChanged.connect(self.auto_query_cb_event)
         QtCore.QObject.connect(self.fb_query_rate_le, QtCore.SIGNAL('editingFinished()'), self.update_feedback_rate)
         QtCore.QObject.connect(self.update_timer, QtCore.SIGNAL('timeout()'), self.auto_query_timeout)
@@ -132,9 +127,9 @@ class MainWindow(QtGui.QMainWindow):
         QtCore.QObject.connect(self.gpredict_port_le, QtCore.SIGNAL('editingFinished()'), self.update_predict_port)
         QtCore.QObject.connect(self.predict_timer, QtCore.SIGNAL('timeout()'), self.update_predict_status)
 
-   
 
-    
+
+
     ##### GPREDICT and AUTO TRACK FUNCTIONS #####
     # Functions that deal with Grpedict and auto tracking
     def predict_button_event(self):
@@ -154,12 +149,12 @@ class MainWindow(QtGui.QMainWindow):
 
     def update_predict_ip(self):
         self.pred_ip=self.gpredict_ip_le.text()
-    
+
     def update_predict_port(self):
         self.pred_port = int(self.gpredict_port_le.text())
 
     def set_predict_conn_state(self, state):
-        #function called by gpredict thread    
+        #function called by gpredict thread
         self.pred_conn_state = state
         #self.update_predict_status()
 
@@ -223,7 +218,7 @@ class MainWindow(QtGui.QMainWindow):
         print self.utc_ts() + "Sending MANAGEMENT QUERY"
         if self.connected == True:
             self.connected, valid, state = self.callback.get_daemon_state(True)
-            
+
         if self.connected == True:
             if valid == True:  self.set_daemon_state(state)
             if self.daemon_state == 'ACTIVE':
@@ -246,7 +241,7 @@ class MainWindow(QtGui.QMainWindow):
         #update_timer is dormant if not connected
         if self.connected == True:
             self.connected, valid, state = self.callback.get_daemon_state(False)
-            
+
         if self.connected == True:
             if valid == True:  self.set_daemon_state(state)
             if self.daemon_state == 'ACTIVE':
@@ -274,7 +269,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def auto_query_cb_event(self, state):
         CheckState = (state == QtCore.Qt.Checked)
-        if CheckState == True:  
+        if CheckState == True:
             self.update_timer.start()
             print self.utc_ts() + "Started Auto Update, Interval: " + str(self.update_rate) + " [s]"
         else:
@@ -341,7 +336,24 @@ class MainWindow(QtGui.QMainWindow):
         pass
 
     def update_ssid_event(self, idx):
+        self.ssid = self.cfg['ssid'][idx]['name']
+        self.port = self.cfg['ssid'][idx]['port']
+        self.home_az = self.cfg['ssid'][idx]['home_az']
+        self.home_el = self.cfg['ssid'][idx]['home_el']
+
+        print self.utc_ts() + "Updated Subsystem ID: " + self.ssid
+        print self.utc_ts() + "Updated Daemon port number: " + str(self.port)
+        print self.utc_ts() + "Updated Home Az/El: {:3.1f}/{:3.1f}".format(self.home_az, self.home_el)
+        self.callback.set_ssid(self.ssid)
+        self.callback.set_port(self.port)
+
+    def update_ssid_event_old(self, idx):
         if   idx == 0: #VUL
+            self.ssid = 'VUL'
+            self.port = 2000
+            self.home_az = 180
+            self.home_el = 0.0
+        elif   idx == 0: #VUL
             self.ssid = 'VUL'
             self.port = 2000
             self.home_az = 180
@@ -459,16 +471,23 @@ class MainWindow(QtGui.QMainWindow):
         self.ssidLabel.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
         self.ssidLabel.setStyleSheet("QLabel {color:rgb(255,255,255);}")
         self.ssidLabel.setFixedWidth(60)
+
         self.ssid_combo = QtGui.QComboBox(self)
-        self.ssid_combo.addItem("VHF/UHF")
-        self.ssid_combo.addItem("3.0m Dish")
-        self.ssid_combo.addItem("4.5m Dish")
-        self.ssid_combo.addItem("NOAA WX")
         self.ssid_combo.setFixedHeight(25)
-        if self.ssid =='VUL': self.ssid_combo.setCurrentIndex(0)
-        if self.ssid =='3M0': self.ssid_combo.setCurrentIndex(1)
-        if self.ssid =='4M5': self.ssid_combo.setCurrentIndex(2)
-        if self.ssid =='WX': self.ssid_combo.setCurrentIndex(3)
+        for ssid in self.cfg['ssid']:
+            self.ssid_combo.addItem(ssid['gui_name'])
+        self.ssid_combo.setCurrentIndex(self.cfg['ssid_map'][self.ssid])
+
+        # self.ssid_combo.addItem("FED VHF/UHF")
+        # self.ssid_combo.addItem("HAM VHF/UHF/L")
+        # self.ssid_combo.addItem("3.0m Dish")
+        # self.ssid_combo.addItem("4.5m Dish")
+        # self.ssid_combo.addItem("NOAA WX")
+        # if self.ssid =='fed-vu': self.ssid_combo.setCurrentIndex(0)
+        # if self.ssid =='ham-vu': self.ssid_combo.setCurrentIndex(1)
+        # if self.ssid =='3m0': self.ssid_combo.setCurrentIndex(2)
+        # if self.ssid =='4m5': self.ssid_combo.setCurrentIndex(3)
+        # if self.ssid =='wx': self.ssid_combo.setCurrentIndex(4)
 
         status_lbl = QtGui.QLabel('Status:')
         status_lbl.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
@@ -480,7 +499,7 @@ class MainWindow(QtGui.QMainWindow):
         self.conn_status_lbl.setStyleSheet("QLabel {font-weight:bold; color:rgb(255,0,0);}")
         self.conn_status_lbl.setFixedWidth(125)
         self.conn_status_lbl.setFixedHeight(10)
-        
+
         state_lbl = QtGui.QLabel('State:')
         state_lbl.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
         state_lbl.setStyleSheet("QLabel {color:rgb(255,255,255);}")
@@ -555,7 +574,7 @@ class MainWindow(QtGui.QMainWindow):
         self.fb_query_rate_le.setFixedWidth(50)
         self.fb_query_rate_le.setFixedHeight(20)
 
-        self.auto_query_cb = QtGui.QCheckBox("Auto Query [s]")  
+        self.auto_query_cb = QtGui.QCheckBox("Auto Query [s]")
         self.auto_query_cb.setStyleSheet("QCheckBox { background-color:rgb(0,0,0); color:rgb(255,0,0); }")
         self.auto_query_cb.setChecked(True)
 
@@ -574,7 +593,7 @@ class MainWindow(QtGui.QMainWindow):
         btn_hbox2 = QtGui.QHBoxLayout()
         btn_hbox2.addWidget(self.query_button)
         btn_hbox2.addWidget(self.home_button)
-        
+
         hbox1 = QtGui.QHBoxLayout()
         hbox1.addWidget(self.auto_query_cb)
         hbox1.addWidget(self.fb_query_rate_le)
@@ -588,7 +607,7 @@ class MainWindow(QtGui.QMainWindow):
         vbox.addLayout(btn_hbox1)
         vbox.addLayout(btn_hbox2)
         vbox.addLayout(hbox1)
-        
+
         self.ctrl_fr.setLayout(vbox)
 
     def init_predict_frame(self):
@@ -629,7 +648,7 @@ class MainWindow(QtGui.QMainWindow):
         lbl1.setStyleSheet("QLabel {color:rgb(255,255,255)}")
         lbl1.setFixedWidth(25)
         lbl1.setFixedHeight(10)
-    
+
         lbl2 = QtGui.QLabel('El:')
         lbl2.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
         lbl2.setStyleSheet("QLabel {color:rgb(255,255,255)}")
@@ -648,7 +667,7 @@ class MainWindow(QtGui.QMainWindow):
         self.pred_el_lbl.setFixedWidth(50)
         self.pred_el_lbl.setFixedHeight(10)
 
-        self.auto_track_cb = QtGui.QCheckBox("Auto Track")  
+        self.auto_track_cb = QtGui.QCheckBox("Auto Track")
         self.auto_track_cb.setStyleSheet("QCheckBox { background-color:rgb(0,0,0); color:rgb(255,255,255); }")
         self.auto_track_cb.setFixedHeight(20)
 
@@ -692,7 +711,7 @@ class MainWindow(QtGui.QMainWindow):
         self.con_fr.setFrameShape(QtGui.QFrame.StyledPanel)
         self.pred_fr = QtGui.QFrame(self)
         self.pred_fr.setFrameShape(QtGui.QFrame.StyledPanel)
-        
+
         self.az_fr = QtGui.QFrame(self)
         self.az_fr.setFrameShape(QtGui.QFrame.StyledPanel)
         self.az_compass = az_QwtDial(self.az_fr)
@@ -702,7 +721,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.az_ctrl_fr = control_button_frame(self, 'az')
         self.az_ctrl_fr.setFrameShape(QtGui.QFrame.StyledPanel)
-        
+
         self.el_fr = QtGui.QFrame(self)
         self.el_fr.setFrameShape(QtGui.QFrame.StyledPanel)
         self.el_compass = el_QwtDial(self.el_fr)
@@ -717,7 +736,7 @@ class MainWindow(QtGui.QMainWindow):
         vbox1.addWidget(self.con_fr)
         vbox1.addStretch(1)
         vbox1.addWidget(self.ctrl_fr)
-        vbox1.addStretch(1) 
+        vbox1.addStretch(1)
         vbox1.addWidget(self.pred_fr)
 
         self.main_grid = QtGui.QGridLayout()
@@ -745,6 +764,3 @@ class MainWindow(QtGui.QMainWindow):
 
     def utc_ts(self):
         return str(date.utcnow()) + " UTC | GUI | "
-
-
-    

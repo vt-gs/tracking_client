@@ -20,7 +20,7 @@ from optparse import OptionParser
 
 class vtp_frame(object):
     def __init__ (self, uid = None, ssid = None, cmd = None, az = None, el = None, valid = False):
-        self.uid    = uid        
+        self.uid    = uid
         self.ssid   = ssid
         self.cmd    = cmd
         self.az     = az
@@ -50,10 +50,17 @@ class ManagementFrame(object):
         self.valid  = valid
 
 class vtp(object):
-    def __init__ (self, ip, port, uid = None, ssid = 'VUL', timeout = 1):
-        self.ip         = ip        #IP Address of MD01 Controller
-        self.port       = port      #Port number of MD01 Controller
-        self.timeout    = timeout   #Socket Timeout interval, default = 1.0 seconds
+    #def __init__ (self, ip, port, uid = None, ssid = 'fed-vu', timeout = 1):
+    def __init__ (self, cfg):
+        self.cfg = cfg
+        self.ssid       = self.cfg['startup_ssid']
+        self.uid        = self.cfg['uid']
+
+        self.ip         = self.cfg['daemon_ip'] #IP Address of Tracking Daemon
+        self.timeout    = self.cfg['timeout'] #Socket Timeout interval
+        for ssid in self.cfg['ssid']:
+            if ssid['name'] == self.ssid:
+                self.port = ssid['port']
 
         self.cmd_az     = 180.0     #Commanded Azimuth, used in Set Position Command
         self.cmd_el     = 0         #Commanded Elevation, used in Set Position command
@@ -67,8 +74,6 @@ class vtp(object):
         self.status_cmd = ''
         self.set_cmd    = ''
 
-        self.ssid       = ssid
-        self.uid        = uid
         #self.type       = 'MGMT'
         self.cmd        = 'QUERY'
 
@@ -88,16 +93,16 @@ class vtp(object):
         self.sock       = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP Socket
         self.sock.settimeout(self.timeout)
         try:
-            print self.utc_ts() + "Attempting to connect to Tracking Daemon" 
+            print self.utc_ts() + "Attempting to connect to Tracking Daemon"
             self.sock.connect((self.ip,self.port))
             print self.utc_ts() + "Connection to Tracking Daemon Successful"
-            time.sleep(0.05) 
+            time.sleep(0.05)
             #self.get_daemon_state(True)
             self.connected = True
             return self.connected
         except socket.error as msg:
             print self.utc_ts() + "Exception Thrown: " + str(msg)
-            print self.utc_ts() + "Failed to connect to Daemon" 
+            print self.utc_ts() + "Failed to connect to Daemon"
             self.connected = False
             return self.connected
 
@@ -106,7 +111,7 @@ class vtp(object):
         return self.connected
 
     def disconnect(self):
-        print self.utc_ts() + "Disconnecting from Tracking Daemon" 
+        print self.utc_ts() + "Disconnecting from Tracking Daemon"
         self.sock.close()
         self.connected = False
         return False
@@ -145,7 +150,7 @@ class vtp(object):
                                             self.tx_mot_frame.cmd)
                 print self.utc_ts() + "Sent Message: " + msg
                 self.sock.send(msg)
-                self.feedback, addr = self.sock.recvfrom(1024)   
+                self.feedback, addr = self.sock.recvfrom(1024)
                 self.mot_fb_frame.valid = self.validate_motion_feedback(self.feedback)
                 self.connected = True
             except socket.error as msg:
@@ -174,7 +179,7 @@ class vtp(object):
                                                     self.tx_mot_frame.el)
                 if verbosity: print self.utc_ts() + "Sent Message: " + msg
                 self.sock.send(msg)
-                self.feedback, addr = self.sock.recvfrom(1024)   
+                self.feedback, addr = self.sock.recvfrom(1024)
                 self.mot_fb_frame.valid = self.validate_motion_feedback(self.feedback)
                 self.connected = True
             except socket.error as msg:
@@ -209,10 +214,10 @@ class vtp(object):
                 msg = "{},{},{},{}".format(   self.tx_mot_frame.uid, \
                                                     self.tx_mot_frame.ssid, \
                                                     self.tx_mot_frame.type, \
-                                                    self.tx_mot_frame.cmd)    
+                                                    self.tx_mot_frame.cmd)
                 if verbosity: print self.utc_ts() + "Sent Message: " + msg
                 self.sock.send(msg)
-                self.feedback, addr = self.sock.recvfrom(1024)   
+                self.feedback, addr = self.sock.recvfrom(1024)
                 self.mot_fb_frame.valid = self.validate_motion_feedback(self.feedback)
                 self.connected = True
             except socket.error as msg:
@@ -238,15 +243,15 @@ class vtp(object):
             except ValueError:
                 print self.utc_ts() + "Invalid data types in management frame feedback"
                 return False
-        else: 
-            print self.utc_ts() + "Invalid number of fields in management frame feedback: ", len(fields) 
+        else:
+            print self.utc_ts() + "Invalid number of fields in management frame feedback: ", len(fields)
             return False
 
         # Header Check
         if self.mot_fb_frame.uid != self.uid:
             print "{:s}Invalid feedback USERID, expected: {:s}, received: {:s}".format(self.utc_ts(), self.uid, self.mot_fb_frame.uid)
             return False
-            
+
         if self.mot_fb_frame.ssid != self.ssid:
             print "{:s}Invalid feedback SSID, expected: {:s}, received: {:s}".format(self.utc_ts(), self.ssid, self.mot_fb_frame.ssid)
             return False
@@ -285,14 +290,14 @@ class vtp(object):
         #self.tx_mgmt_frame.type = 'MGMT'
         self.tx_mgmt_frame.cmd = 'QUERY'
         if self.connected == True:
-            try:        
+            try:
                 msg = "{},{},{},{}".format(   self.tx_mgmt_frame.uid, \
                                                     self.tx_mgmt_frame.ssid, \
                                                     self.tx_mgmt_frame.type, \
-                                                    self.tx_mgmt_frame.cmd)  
+                                                    self.tx_mgmt_frame.cmd)
                 if verbosity: print self.utc_ts() + "Sent Message: " + msg
                 self.sock.send(msg)
-                self.feedback, addr = self.sock.recvfrom(1024)   
+                self.feedback, addr = self.sock.recvfrom(1024)
                 self.mgmt_fb_frame.valid = self.validate_management_feedback(self.feedback)
                 self.connected = True
             except socket.error as msg:
@@ -311,10 +316,10 @@ class vtp(object):
         msg += self.ssid + ','
         msg += 'MGMT,'
         msg += 'START'
-        try:        
+        try:
             print self.utc_ts() + "Sent Message: " + msg
             self.sock.send(msg)
-            self.feedback, addr = self.sock.recvfrom(1024)   
+            self.feedback, addr = self.sock.recvfrom(1024)
             self.mgmt_fb_frame.valid = self.validate_management_feedback(self.feedback)
         except socket.error as msg:
             print self.utc_ts() + "Exception Thrown: " + str(msg)
@@ -327,10 +332,10 @@ class vtp(object):
         msg += self.ssid + ','
         msg += 'MGMT,'
         msg += 'STOP'
-        try:        
+        try:
             print self.utc_ts() + "Sent Message: " + msg
             self.sock.send(msg)
-            self.feedback, addr = self.sock.recvfrom(1024)   
+            self.feedback, addr = self.sock.recvfrom(1024)
             self.mgmt_fb_frame.valid = self.validate_management_feedback(self.feedback)
         except socket.error as msg:
             print self.utc_ts() + "Exception Thrown: " + str(msg)
@@ -350,14 +355,14 @@ class vtp(object):
             except ValueError:
                 print self.utc_ts() + "Invalid data types in management frame feedback"
                 return False
-        else: 
-            print self.utc_ts() + "Invalid number of fields in management frame feedback: ", len(fields) 
+        else:
+            print self.utc_ts() + "Invalid number of fields in management frame feedback: ", len(fields)
             return False
-        
+
         if self.mgmt_fb_frame.uid != self.uid:
             print "{:s}Invalid feedback USERID, expected: {:s}, received: {:s}".format(self.utc_ts(), self.uid, self.mgmt_fb_frame.uid)
             return False
-            
+
         if self.mgmt_fb_frame.ssid != self.ssid:
             print "{:s}Invalid feedback SSID, expected: {:s}, received: {:s}".format(self.utc_ts(), self.ssid, self.mgmt_fb_frame.ssid)
             return False
@@ -368,5 +373,3 @@ class vtp(object):
 
         return True
     #***** END MANAGEMENT FRAME FUNCTIONS *****
-
-
