@@ -1,6 +1,6 @@
 {
   "startup_ssid":"fed-vu",
-  "daemon_ip":"0.0.0.0",
+  "daemon_ip":"10.42.0.10",
   "timeout":2.0,
   "update_rate":0.25,
   "gpredict":{
