@@ -1,0 +1,37 @@
+"ssid": [
+  {
+    "name":"fed-vu",
+    "gui_name":"FED VHF/UHF",
+    "port":2000,
+    "home_az":180.0,
+    "home_el":0.0
+  },
+  {
+    "name":"ham-vul",
+    "gui_name":"HAM VHF/UHF/L",
+    "port":2001,
+    "home_az":180.0,
+    "home_el":0.0
+  },
+  {
+    "name":"3m0",
+    "gui_name":"3.0m Dish",
+    "port":2002,
+    "home_az":180.0,
+    "home_el":90.0
+  },
+  {
+    "name":"4m5",
+    "gui_name":"4.5m Dish",
+    "port":2003,
+    "home_az":180.0,
+    "home_el":90.0
+  },
+  {
+    "name":"local",
+    "gui_name":"Local",
+    "port":2004,
+    "home_az":180.0,
+    "home_el":0.0
+  }
+]

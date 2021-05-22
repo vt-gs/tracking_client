@@ -1,0 +1,28 @@
+{
+    "ssid":"local",
+    "name":"track-gui",
+    "log_path":"/log/tracking",
+    "ssid_map":"ssid_map.json",
+    "main_log":{
+        "level":"DEBUG",
+        "verbose":true
+    },
+    "thread_enable":{
+        "service": true,
+        "gui":true,
+        "gpredict":false,
+    },
+    "service":{
+        "type":"TCP",
+        "ip":"0.0.0.0",
+        "port":2000,
+        "timeout": 5.0,
+        "poll_rate": 0.5
+    },
+    "gpredict":{
+        "ip":"0.0.0.0",
+        "port":2000,
+        "timeout":0.5,
+        "poll_rate": 0.5
+    }
+}
